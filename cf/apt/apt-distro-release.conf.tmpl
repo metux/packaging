@@ -1,0 +1,25 @@
+Dir {
+        ArchiveDir              ".";
+        CacheDir                "cache";
+};
+
+Default {
+        Contents::Compress      "gzip";
+        Packages::Compress      ". gzip bzip2";
+        Sources::Compress       ". gzip bzip2";
+};
+
+Tree "dists/@DISTRO@" {
+        Sections                "@SECTIONS@";
+        Architectures           "@ARCHITECTURES@";
+};
+
+APT::FTPArchive::Release {
+        Codename        "@CODENAME@";
+        Suite           "@DISTRO@";
+        Origin          "packags.vnc.biz";
+        Label           "@LABEL@";
+        Architectures   "@ARCHITECTURES@";
+        Components      "@COMPONENTS@";
+        Description     "@DESCRIPTION@";
+};

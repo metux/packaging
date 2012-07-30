@@ -1,0 +1,21 @@
+
+This build workspace system is tailored to debian/ubuntu.
+
+= Initial setup =
+
+* run the script 'initialize' - it will install required packages
+* regularily run 'sync-workspace' to fetch all packages
+** the individual package repositories will be stored under pkg/
+* setup pbuilder: https://wiki.ubuntu.com/PbuilderHowto
+
+= Building individual packages =
+
+* you'll need to checkout proper branches first
+* target distro guessed from branch name prefix (eg. for 'precise/')
+* for each package there's an individual build-* script
+* built binary packages are put into the apt repository in ./aptrepo/
+
+= Using the aptrepo locally =
+
+* add it to your /etc/apt/sources.list
+* for example: deb file:///<path_to_workspace>/aptrepo precise main testing experimental

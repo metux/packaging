@@ -1,0 +1,451 @@
+#!/bin/bash
+
+die() {
+	echo "$0: $*" >&2
+	exit 1
+}
+
+log() {
+	echo "$*" >&2
+}
+
+output() {
+	echo -n "$*"
+}
+
+## find the workspace root directory and output to stdout
+wksp_rootdir() {
+	detect_rootdir
+	output "$WORKSPACER_ROOT"
+}
+
+detect_rootdir() {
+	local CWD=`pwd`
+	if [ -f "$CWD/cf/workspace.cf" ]; then
+		export WORKSPACE_ROOT="$CWD"
+		return 0
+	fi
+
+	while [ "$CWD" != "" ] && [ "$CWD" != "/" ]; do
+		if [ -f "$CWD/cf/workspace.cf" ]; then
+			export WORKSPACE_ROOT="$CWD"
+			return
+		fi
+		CWD=`dirname "$CWD"`
+	done
+	die "cant find rootdir with workspace.cf"
+}
+
+wksp_packages() {
+	for i in $WORKSPACE_ROOT/cf/packages/*.cf ; do
+		if [ -f "$i" ]; then
+			bn=`basename "$i"`
+			echo "${bn%%.cf}"
+		fi
+	done
+}
+
+wksp_generate_global_config() {
+	detect_rootdir
+	echo "declare -A WORKSPACE_CONFIG"
+	cat $WORKSPACE_ROOT/cf/workspace.cf | sed -e 's~#.*~~; s~^[ \t].*~~; s~[ \t]*$~~;' | grep -vE "^$" | \
+		while read line ; do
+			key=`echo "$line" | sed -e 's~:.*~~'`
+			value="${line##$key:}"
+			value="${value#"${value%%[![:space:]]*}"}"
+			value="${value//\{WORKSPACE_ROOT\}/$WORKSPACE_ROOT}"
+			echo "export WORKSPACE_CONFIG[\"${key}\"]=\"$value\""
+		done
+	for i in LANG LANGUAGE LC_PAPER LC_ADDRESS LC_MONETARY LC_NUMERIC LC_ALL \
+                 LC_TELEPHONE LC_MESSAGES LC_IDENTIFICATION LC_COLLATE \
+                 LC_MEASUREMENT LC_CTYPE LC_TIME LC_NAME ; do
+		echo "unset $i"
+	done
+}
+
+wksp_load_global_config () {
+	detect_rootdir
+	eval `wksp_generate_global_config`
+	export WORKSPACE_CONFIG
+}
+
+wksp_generate_package_config() {
+	local package="$1"
+	export PACKAGE_NAME="\"$package\""
+	echo "declare -A PACKAGE_CONFIG"
+	echo "export PACKAGE_CONFIG[\"local_workdir\"]=\"$WORKSPACE_ROOT/pkg/$package.git\""
+	echo "export PACKAGE_CONFIG[\"package\"]=\"$package\""
+	cat $WORKSPACE_ROOT/cf/packages/$package.cf | sed -e 's~#.*~~; s~^[ \t].*~~; s~[ \t]*$~~;' | grep -vE "^$" | \
+	(
+		while read line ; do
+			key=`echo "$line" | sed -e 's~:.*~~'`
+			value="${line##$key:}"
+			value="${value#"${value%%[![:space:]]*}"}"
+			value="${value//\{WORKSPACE_ROOT\}/$WORKSPACE_ROOT}"
+			variable=`echo "$key" | tr '.' '_' | tr '-' '_'`
+			echo "export PACKAGE_CONFIG[\"$key\"]=\"$value\""
+		done
+	)
+}
+
+wksp_load_package_config () {
+	local package="$1"
+	unset PACKAGE_CONFIG
+	eval `wksp_generate_package_config "${package}"`
+	export PACKAGE_CONFIG
+}
+
+#
+# add remote git repository to project
+#
+# $1: workdir
+# $2: remote name
+# $3: repo url
+#
+wks_project_add_remote_git() {
+	(
+		local WORKDIR="$1"
+		local REMOTE_NAME="$2"
+		local UPSTREAM_REPO="$3"
+		cd "$WORKDIR" || return 1
+		git config remote.$REMOTE_NAME.url "$UPSTREAM_REPO"
+		git config remote.$REMOTE_NAME.fetch "+refs/heads/*:refs/remotes/$REMOTE_NAME/*"
+		git remote update $REMOTE_NAME
+	)
+}
+
+#
+# add remote bzr repository to project
+#
+# $1: workdir
+# $2: remote name
+# $3: repo url
+#
+wks_project_add_remote_bzr() {
+	(
+		local WORKDIR="$1"
+		local REMOTE_NAME="$2"
+		local UPSTREAM_REPO="$3"
+		cd "$WORKDIR" || return 1
+		UPSTREAM_REPO="${UPSTREAM_REPO##bzr::}"
+		git bzr import "${UPSTREAM_REPO}"
+		for i in `git branch | grep "bzr/"`; do git bzr sync "$i" ; done
+	)
+}
+
+#
+# add (external) upstream repo to our local package clone
+#
+# $1: package workdir
+# $2: remote name
+# $3: upstream repo location
+#
+wks_project_add_remote() {
+	local WORKDIR="$1"
+	local REMOTE_NAME="$2"
+	local UPSTREAM_REPO="$3"
+
+	if [ "$UPSTREAM_REPO" == "" ]; then
+		return 0
+	fi
+
+	case "$UPSTREAM_REPO" in
+		git://*)
+			wks_project_add_remote_git "$WORKDIR" "$REMOTE_NAME" "$UPSTREAM_REPO"
+		;;
+		GIT:https://*)
+			wks_project_add_remote_git "$WORKDIR" "$REMOTE_NAME" "$UPSTREAM_REPO"
+		;;
+		bzr::*)
+			wks_project_add_remote_bzr "$WORKDIR" "$REMOTE_NAME" "$UPSTREAM_REPO"
+		;;
+		*)
+			wks_project_add_remote_git "$WORKDIR" "$REMOTE_NAME" "$UPSTREAM_REPO"
+		;;
+	esac
+}
+
+wksp_sync_package() {
+	local package="$1"
+
+	eval `wksp_generate_global_config`
+	eval `wksp_generate_package_config "${package}"`
+
+	local repo=${PACKAGE_CONFIG["local_workdir"]}
+
+	echo "Synchronizing package: ${package}"
+
+	git init ${PACKAGE_CONFIG["local_workdir"]} 2>&1 | grep -vE "^Reinitialized existing Git repository in"
+	ln -sf scripts/build.sh ${WORKSPACE_ROOT}/build-${package}
+
+	for remote in ${WORKSPACE_CONFIG["scm.remotes"]} ; do
+		local project=${PACKAGE_CONFIG["remote.${remote}.project"]}
+		local url=${WORKSPACE_CONFIG["scm.remote.${remote}.url"]}
+		if [ "$project" ]; then
+			local url="${url//\{PROJECT\}/${project}}"
+			wks_project_add_remote "${PACKAGE_CONFIG["local_workdir"]}" "${remote}" "${url}"
+		fi
+	done
+}
+
+wksp_sync_packages() {
+	for pkg in `wksp_packages` ; do
+		wksp_sync_package "$pkg"
+	done
+}
+
+wksp_help() {
+	echo "usage: wksp <command>"
+	echo ""
+	echo "commands:"
+	echo ""
+	echo "    sync                    synchronize workspace with remotes"
+	echo "    build-dpkg <package>    build debian package from current branch using pbuilder"
+	echo "    prepare-dpkg <distro>   prepare pbuilder environment for given distro"
+	echo "    update-aptrepo          update the apt repositories"
+	echo "    clean-aptrepo           clean apt repository"
+	echo "    help                    this help page"
+	echo ""
+	exit
+}
+
+git_get_current_branch() {
+	( cd "$1" && git branch | grep '\*' | sed -e 's~[\* ]*~~' )
+}
+
+# $1: target distribution
+wksp_dpkg_prepare_pbuilder() {
+
+	eval `wksp_generate_global_config`
+
+	local TARGET_DIST="$1"
+
+	if [ ! "$TARGET_DIST" ]; then
+		die "$0: missing target distro name"
+	fi
+
+	local TARGET_COW="${WORKSPACE_CONFIG["dpkg.target.cow"]//\{DISTRO\}/$TARGET_DIST}"
+	local TARGET_COMPONENTS="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.components"]}"
+
+	if [ ! -d "$TARGET_COW" ]; then
+		log "[$TARGET_DIST] need to create cow image"
+		sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST}" git-pbuilder create --distribution "${TARGET_DIST}" --components "${TARGET_COMPONENTS}"
+	else
+		log "[$TARGET_DIST] COW image already set up"
+	fi
+}
+
+wksp_build_dpkg() {
+	local PACKAGE="$1"
+	[ "$PACKAGE" ] || die "missing package name"
+	[ -f "$WORKSPACE_ROOT/cf/packages/$PACKAGE.cf" ] || die "unknown package: $PACKAGE"
+	eval `wksp_generate_global_config`
+	eval `wksp_generate_package_config "${PACKAGE}"`
+	export WORKSPACE_CONFIG
+	export PACKAGE_CONFIG
+	local CURRENT_BRANCH=`git_get_current_branch ${PACKAGE_CONFIG["local_workdir"]}`
+	for d in ${WORKSPACE_CONFIG["dpkg.distros"]} ; do
+		if [[ "$CURRENT_BRANCH" == $d/* ]]; then
+			local TARGET_DIST="$d"
+		fi
+	done
+	[ "$TARGET_DIST" ] || die "cant detect target distro. maybe you need to checkout the right branch"
+	wksp_dpkg_prepare_pbuilder "$TARGET_DIST"
+
+	local EXPORT_DIR="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/output/${PACKAGE}/${TARGET_DIST}"
+	local ORIG_TARBALL_PREFIX="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/tarballs/${PACKAGE}/${TARGET_DIST}"
+	local APT_REPO=
+
+	echo "ORIG_TARBALL_PREFIX=$ORIG_TARBALL_PREFIX"
+	echo "EXPORT_DIR=$EXPORT_DIR"
+
+	rm -Rf ${EXPORT_DIR}
+	mkdir -p ${EXPORT_DIR}
+
+	( cd "${PACKAGE_CONFIG["local_workdir"]}" && git-buildpackage	\
+		--git-verbose						\
+		--git-pbuilder						\
+		--git-dist=${TARGET_DIST}				\
+		--git-tarball-dir=${ORIG_TARBALL_PREFIX}/${PACKAGE}	\
+		--git-export-dir=${EXPORT_DIR}				\
+		--git-debian-branch=${CURRENT_BRANCH}			\
+		--git-upstream-branch=${CURRENT_BRANCH}			\
+		--git-upstream-tree=branch				\
+		--git-no-pristine-tar					\
+		--git-no-create-orig					\
+		) || return 1
+
+	for deb in `find ${EXPORT_DIR} -name "*.deb"` ; do
+		echo "Found deb file: $deb"
+		local pooldir="${WORKSPACE_CONFIG["apt.target.repository"]}/pool/dists/${TARGET_DIST}/${WORKSPACE_CONFIG["apt.target.section"]}/${PACKAGE}"
+		mkdir -p $pooldir
+		cp $deb $pooldir
+	done
+
+	wksp_aptrepo_update
+}
+
+wksp_aptrepo_update() {
+	eval `wksp_generate_global_config`
+	local ARCHIVE_ROOT="${WORKSPACE_CONFIG["apt.target.repository"]}"
+	local ARCHIVE_CONF="${ARCHIVE_ROOT}/conf/apt-ftparchive.conf"
+	local ARCHIVE_CONF_TMPL="$WORKSPACE_ROOT/cf/apt/apt-ftparchive.conf.tmpl"
+	local RELEASE_CONF_TMPL="$WORKSPACE_ROOT/cf/apt/apt-distro-release.conf.tmpl"
+	local DISTS="${WORKSPACE_CONFIG["dpkg.distros"]}"
+	local SECTIONS="${WORKSPACE_CONFIG["dpkg.sections"]}"
+	local ARCHITECTURES="${WORKSPACE_CONFIG["dpkg.architectures"]}"
+	local COMPONENTS="${WORKSPACE_CONFIG["dpkg.components"]}"
+
+	mkdir -p ${ARCHIVE_ROOT}
+
+	rm -Rf ${ARCHIVE_ROOT}/cache
+
+	local CLEAN_FILES="
+		Release
+		Release.gpg
+		Release.gpg.gz
+		Release.gpg.bz2
+		Release.gz
+		Release.bz2
+		Packages
+		Packages.gz
+		Packages.bz2
+	"
+
+	for i in $CLEAN_FILES ; do find ${ARCHIVE_ROOT} -name "$i" -delete ; done
+
+	mkdir -p ${ARCHIVE_ROOT}/cache ${ARCHIVE_ROOT}/conf
+
+	cat $ARCHIVE_CONF_TMPL \
+		| sed -e "s~@SECTIONS@~${SECTIONS}~; s~@ARCHITECTURES@~${ARCHITECTURES}~" \
+		> ${ARCHIVE_CONF}
+
+	for d in ${DISTS} ; do
+		mkdir -p ${ARCHIVE_ROOT}/dists/$d
+		for s in ${SECTIONS} ; do
+			mkdir -p ${ARCHIVE_ROOT}/pool/dists/$d/$s
+			for a in ${ARCHITECTURES} ; do
+				mkdir -p ${ARCHIVE_ROOT}/dists/$d/$s/binary-$a/
+				touch ${ARCHIVE_ROOT}/dists/$d/$s/binary-$a/Packages
+			done
+		done
+
+		local CODENAME="$d"
+		local LABEL="$d"
+
+		cat $RELEASE_CONF_TMPL \
+			| sed -e "s~@SECTIONS@~${SECTIONS}~g"						\
+			| sed -e "s~@ARCHITECTURES@~${ARCHITECTURES}~g"					\
+			| sed -e "s~@CODENAME@~${CODENAME}~g"						\
+			| sed -e "s~@DISTRO@~${d}~g"							\
+			| sed -e "s~@LABEL@~${WORKSPACE_CONFIG["dpkg.dist.${d}.label"]}~g"		\
+			| sed -e "s~@COMPONENTS@~${WORKSPACE_CONFIG["dpkg.dist.${d}.components"]}~g"	\
+			| sed -e "s~@DESCRIPTION@~${WORKSPACE_CONFIG["dpkg.dist.${d}.description"]}~g"	\
+			> ${ARCHIVE_ROOT}/conf/apt-$d-release.conf
+	done
+
+	(cd ${ARCHIVE_ROOT} && apt-ftparchive generate ${ARCHIVE_CONF} 2>&1 )
+
+	for d in ${DISTS}; do
+		DIST_ROOT=${ARCHIVE_ROOT}/dists/$d
+		(cd ${ARCHIVE_ROOT} && pwd && apt-ftparchive -c ${ARCHIVE_ROOT}/conf/apt-$d-release.conf release ${DIST_ROOT} > ${DIST_ROOT}/Release.tmp )
+		mv ${DIST_ROOT}/Release.tmp ${DIST_ROOT}/Release
+		gpg -abs -o ${DIST_ROOT}/Release.gpg ${DIST_ROOT}/Release
+	done
+
+	(
+		echo -n "Experimental repo. Created at: "
+		hostname --fqdn
+		date
+	) > ${ARCHIVE_ROOT}/INFO
+}
+
+wksp_aptrepo_clean() {
+	eval `wksp_generate_global_config`
+	local ARCHIVE_ROOT="${WORKSPACE_CONFIG["apt.target.repository"]}"
+	local ARCHIVE_CONF="${ARCHIVE_ROOT}/conf/apt-ftparchive.conf"
+	local DISTS="${WORKSPACE_CONFIG["dpkg.distros"]}"
+	local SECTIONS="${WORKSPACE_CONFIG["dpkg.sections"]}"
+	local ARCHITECTURES="${WORKSPACE_CONFIG["dpkg.architectures"]}"
+	local COMPONENTS="${WORKSPACE_CONFIG["dpkg.components"]}"
+
+	local ARCHIVE_ROOT="${WORKSPACE_CONFIG["apt.target.repository"]}"
+	[ "$ARCHIVE_ROOT" ] || die "$0: missing config apt.target.repository"
+
+	rm -Rf	\
+		$ARCHIVE_ROOT/cache			\
+		$ARCHIVE_ROOT/conf/apt-ftparchive.conf	\
+		$ARCHIVE_ROOT/INFO
+
+	for d in $DISTS ; do
+		rm -f $ARCHIVE_ROOT/conf/apt-$d-release.conf
+	done
+
+	if [ -d "$ARCHIVE_ROOT/dists" ]; then
+		find "$ARCHIVE_ROOT/dists" -name "Release" -delete
+		find "$ARCHIVE_ROOT/dists" -name "Release.gpg" -delete
+		find "$ARCHIVE_ROOT/dists" -name "Packages" -delete
+		find "$ARCHIVE_ROOT/dists" -name "Packages.gz" -delete
+		find "$ARCHIVE_ROOT/dists" -name "Packages.bz2" -delete
+		for a in all $ARCHITECTURES ; do
+			find $ARCHIVE_ROOT/dists -name "Contents-$a.gz" -delete
+		done
+	fi
+
+	if [ -d "$ARCHIVE_ROOT/pool" ]; then
+		find "$ARCHIVE_ROOT/pool" -name "*.deb" -delete
+	fi
+
+	for i in 1 2 3 4 5 6 7 ; do
+		find $ARCHIVE_ROOT -type d -exec "rmdir" "{}" ";" 2>/dev/null
+	done
+}
+
+[ "$1" ] || wksp_help
+
+wksp_load_global_config
+
+unset LC_CTYPE
+unset LANGUAGE
+unset LC_ALL
+unset LC_TIME
+unset LC_MONETARY
+unset LC_COLLATE
+unset LC_ADDRESS
+unset LC_TELEPHONE
+unset LC_MESSAGES
+unset LC_NAME
+unset LC_MEASUREMENT
+unset LC_IDENTIFICATION
+unset LC_NUMERIC
+unset LC_PAPER
+unset LANG
+
+while [ "$1" ]; do
+	opt="$1"
+	shift
+
+	case "$opt" in
+		"sync"|"--sync")
+			wksp_sync_packages
+			exit 0
+		;;
+		"build-dpkg"|"--build-dpkg")
+			wksp_build_dpkg "$*"
+			exit 0
+		;;
+		"prepare-dpkg"|"--prepare-dpkg")
+			wksp_dpkg_prepare_pbuilder "$*"
+			exit 0
+		;;
+		"update-aptrepo"|"--update-aptrepo")
+			wksp_aptrepo_update "$*"
+		;;
+		"clean-aptrepo"|"--clean-aptrepo")
+			wksp_aptrepo_clean "$*"
+		;;
+		*)
+			wksp_help
+		;;
+	esac
+done
