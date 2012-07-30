@@ -1,0 +1,20 @@
+Dir {
+        ArchiveDir              ".";
+        CacheDir                "cache";
+};
+
+Default {
+        Contents::Compress      "gzip";
+        Packages::Compress      ". gzip bzip2";
+        Sources::Compress       ". gzip bzip2";
+};
+
+TreeDefault {
+        Directory               "pool/$(DIST)/$(SECTION)";
+        SrcDirectory            "pool/$(DIST)/$(SECTION)";
+};
+
+Tree "dists/precise" {
+        Sections                "@SECTIONS@";
+        Architectures           "@ARCHITECTURES@";
+};

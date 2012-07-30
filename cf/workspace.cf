@@ -1,0 +1,32 @@
+## our workspace name
+workspace.name:			empty development workspace
+workspace.sources:		{WORKSPACE_ROOT}/pkg
+
+## SCM remotes
+scm.remotes:			github public upstream
+scm.remote.github.url:		git@github.com:{PROJECT}.git
+scm.remote.public.url:		git://github.com/{PROJECT}.git
+scm.remote.upstream.url:	{PROJECT}
+
+pbuilder.result:		/var/cache/pbuilder/result
+pbuilder.tempdir:		{WORKSPACE_ROOT}/tmp/pbuilder
+
+dpkg.distros:			lucid precise raring
+dpkg.sections:			main testing experimental
+dpkg.architectures:		all i386 amd64
+dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
+
+dpkg.dist.precise.label:	Precise
+dpkg.dist.precise.description:	Precise Penguin
+dpkg.dist.precise.components:	main universe multiverse restricted
+
+dpkg.dist.raring.label:		Raring
+dpkg.dist.raring.description:	Raring Ringtail
+dpkg.dist.raring.components:	main universe multiverse restricted
+
+dpkg.dist.lucid.label:		Lucid
+dpkg.dist.lucid.description:	Lucid Lynx
+dpkg.dist.lucid.components:	main universe multiverse restricted
+
+apt.target.repository:		{WORKSPACE_ROOT}/aptrepo/
+apt.target.section:		experimental

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+. config.sh
+
+echo "Initial tool installation ..."
+sudo apt-get install \
+	python-setuptools	\
+	python-babel		\
+	bash-completion		\
+	pbuilder		\
+	git			\
+	git-bzr-ng		\
+	bzr			\
+	bzr-git			\
+	tig			\
+	git-buildpackage	\
+	cowbuilder		\
+	dos2unix		\
+	ubuntu-dev-tools	\
+	debhelper		\
+	dh-autoreconf
+
+echo
+echo "Remember to setup pbuilder: https://wiki.ubuntu.com/PbuilderHowto"
+echo
