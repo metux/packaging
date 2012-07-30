@@ -1,5 +1,5 @@
 ## our workspace name
-workspace.name:			development workspace
+workspace.name:			METUX development workspace
 workspace.sources:		{WORKSPACE_ROOT}/pkg
 
 ## SCM remotes
