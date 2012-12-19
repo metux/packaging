@@ -1,5 +1,5 @@
 ## our workspace name
-workspace.name:			empty development workspace
+workspace.name:			development workspace
 workspace.sources:		{WORKSPACE_ROOT}/pkg
 
 ## SCM remotes
@@ -19,14 +19,14 @@ dpkg.architectures:		all i386 amd64
 dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
 dpkg.target.tgz:		/var/cache/pbuilder/base-{DISTRO}.tgz
 
-dpkg.dist.precise.label:	Precise
-dpkg.dist.precise.description:	Precise Penguin
+dpkg.dist.precise.label:	Precise (metux)
+dpkg.dist.precise.description:	Precise Penguin / (metux)
 dpkg.dist.precise.components:	main universe multiverse restricted
 dpkg.dist.precise.mirror:		http://mirrors.kernel.org/ubuntu
 dpkg.dist.precise.keyring:		/usr/share/keyrings/ubuntu-archive-keyring.gpg
 
-dpkg.dist.raring.label:		Raring
-dpkg.dist.raring.description:	Raring Ringtail
+dpkg.dist.raring.label:		Raring (metux)
+dpkg.dist.raring.description:	Raring Ringtail / (metux)
 dpkg.dist.raring.components:	main universe multiverse restricted
 dpkg.dist.raring.mirror:		http://mirrors.kernel.org/ubuntu
 dpkg.dist.raring.keyring:		/usr/share/keyrings/ubuntu-archive-keyring.gpg
