@@ -12,3 +12,5 @@
 /pkg
 /tmp
 /build-*
+/aptrepo/conf/apt-ftparchive.conf
+/aptrepo/conf/apt-*-release.conf
