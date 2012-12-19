@@ -1,0 +1,3 @@
+remote.github.project:			metux/mesa
+remote.public.project:			metux/mesa
+remote.upstream.project:		git://anongit.freedesktop.org/mesa/mesa

@@ -1,1 +1,3 @@
-remote.gitorious.project:	geeqie/metux-geeqie
+remote.upstream-github.project:	BestImageViewer/geeqie
+remote.github.project:		metux/geeqie
+remote.github.public:		metux/geeqie
