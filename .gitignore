@@ -15,3 +15,5 @@
 *.deb
 /pkg
 /tmp
+/aptrepo/conf/apt-ftparchive.conf
+/aptrepo/conf/apt-*-release.conf
