@@ -219,6 +219,7 @@ wksp_dpkg_prepare_pbuilder() {
 	eval `wksp_generate_global_config`
 
 	local TARGET_DIST="$1"
+	local TARGET_ARCH=""
 
 	if [ ! "$TARGET_DIST" ]; then
 		die "$0: missing target distro name"
@@ -229,7 +230,15 @@ wksp_dpkg_prepare_pbuilder() {
 
 	if [ ! -d "$TARGET_COW" ]; then
 		log "[$TARGET_DIST] need to create cow image"
-		sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST}" git-pbuilder create --distribution "${TARGET_DIST}" --components "${TARGET_COMPONENTS}"
+		local arr
+		IFS='-' read -a arr <<< "$TARGET_DIST"
+		TARGET_DIST_NAME="${arr[0]}"
+		TARGET_ARCH="${arr[1]}"
+		if [ "$TARGET_ARCH" ]; then
+			sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST_NAME}" ARCH="${TARGET_ARCH}" git-pbuilder create --distribution "${TARGET_DIST_NAME}" --architecture "${TARGET_ARCH}" --components "${TARGET_COMPONENTS}"
+		else
+			sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST}" git-pbuilder create --distribution "${TARGET_DIST}" --components "${TARGET_COMPONENTS}"
+		fi
 	else
 		log "[$TARGET_DIST] COW image already set up"
 	fi
