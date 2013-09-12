@@ -11,7 +11,7 @@ scm.remote.upstream.url:	{PROJECT}
 pbuilder.result:		/var/cache/pbuilder/result
 pbuilder.tempdir:		{WORKSPACE_ROOT}/tmp/pbuilder
 
-dpkg.distros:			lucid precise raring
+dpkg.distros:			lucid precise raring raring-i386
 dpkg.sections:			main testing experimental
 dpkg.architectures:		all i386 amd64
 dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
@@ -27,6 +27,10 @@ dpkg.dist.raring.components:	main universe multiverse restricted
 dpkg.dist.lucid.label:		Lucid
 dpkg.dist.lucid.description:	Lucid Lynx
 dpkg.dist.lucid.components:	main universe multiverse restricted
+
+dpkg.dist.raring-i386.label:		Raring i386
+dpkg.dist.raring-i386.description:	Raring Ringtail / i386
+dpkg.dist.raring-i386.components:	main universe multiverse restricted
 
 apt.target.repository:		{WORKSPACE_ROOT}/aptrepo/
 apt.target.section:		experimental
