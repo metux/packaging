@@ -7,6 +7,8 @@
 /aptrepo/dists/*/Contents-*.gz
 /aptrepo/dists/*/Release
 /aptrepo/dists/*/Release.gpg
+/aptrepo/conf/apt-*-release.conf
+/aptrepo/conf/apt-ftparchive.conf
 /pkg
 /tmp
 /build-*
