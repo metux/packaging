@@ -219,23 +219,25 @@ wksp_dpkg_prepare_pbuilder() {
 	eval `wksp_generate_global_config`
 
 	local TARGET_DIST="$1"
-	local TARGET_ARCH=""
+	local TARGET_ARCH="$2"
 
 	if [ ! "$TARGET_DIST" ]; then
 		die "$0: missing target distro name"
 	fi
 
-	local TARGET_COW="${WORKSPACE_CONFIG["dpkg.target.cow"]//\{DISTRO\}/$TARGET_DIST}"
+	if [ "$TARGET_ARCH" ]; then
+		TARGET_IDENT="${TARGET_DIST}-${TARGET_ARCH}"
+	else
+		TARGET_IDENT="${TARGET_DIST}"
+	fi
+
+	local TARGET_COW="${WORKSPACE_CONFIG["dpkg.target.cow"]//\{DISTRO\}/$TARGET_IDENT}"
 	local TARGET_COMPONENTS="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.components"]}"
 
 	if [ ! -d "$TARGET_COW" ]; then
 		log "[$TARGET_DIST] need to create cow image"
-		local arr
-		IFS='-' read -a arr <<< "$TARGET_DIST"
-		TARGET_DIST_NAME="${arr[0]}"
-		TARGET_ARCH="${arr[1]}"
 		if [ "$TARGET_ARCH" ]; then
-			sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST_NAME}" ARCH="${TARGET_ARCH}" git-pbuilder create --distribution "${TARGET_DIST_NAME}" --architecture "${TARGET_ARCH}" --components "${TARGET_COMPONENTS}"
+			sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST}" ARCH="${TARGET_ARCH}" git-pbuilder create --distribution "${TARGET_DIST}" --architecture "${TARGET_ARCH}" --components "${TARGET_COMPONENTS}"
 		else
 			sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST}" git-pbuilder create --distribution "${TARGET_DIST}" --components "${TARGET_COMPONENTS}"
 		fi
@@ -256,17 +258,21 @@ wksp_build_dpkg() {
 	for d in ${WORKSPACE_CONFIG["dpkg.distros"]} ; do
 		if [[ "$CURRENT_BRANCH" == $d/* ]]; then
 			local TARGET_DIST="$d"
+			local TARGET_IDENT="$d"
 		fi
+		for a in ${WORKSPACE_CONFIG["dpkg.architectures"]} ; do
+			if [[ "$CURRENT_BRANCH" == $d-$a/* ]]; then
+				local TARGET_DIST="$d"
+				local TARGET_ARCH="$a"
+				local TARGET_IDENT="$d-$a"
+			fi
+		done
 	done
 	[ "$TARGET_DIST" ] || die "cant detect target distro. maybe you need to checkout the right branch"
-	wksp_dpkg_prepare_pbuilder "$TARGET_DIST"
+	wksp_dpkg_prepare_pbuilder "$TARGET_DIST" "$TARGET_ARCH"
 
-	local EXPORT_DIR="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/output/${PACKAGE}/${TARGET_DIST}"
-	local ORIG_TARBALL_PREFIX="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/tarballs/${PACKAGE}/${TARGET_DIST}"
-	local APT_REPO=
-
-	echo "ORIG_TARBALL_PREFIX=$ORIG_TARBALL_PREFIX"
-	echo "EXPORT_DIR=$EXPORT_DIR"
+	local EXPORT_DIR="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/output/${PACKAGE}/${TARGET_DIST_IDENT}"
+	local ORIG_TARBALL_PREFIX="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/tarballs/${PACKAGE}/${TARGET_DIST_IDENT}"
 
 	rm -Rf ${EXPORT_DIR}
 	mkdir -p ${EXPORT_DIR}
@@ -274,7 +280,7 @@ wksp_build_dpkg() {
 	( cd "${PACKAGE_CONFIG["local_workdir"]}" && git-buildpackage	\
 		--git-verbose						\
 		--git-pbuilder						\
-		--git-dist=${TARGET_DIST}				\
+		--git-dist=${TARGET_IDENT}				\
 		--git-tarball-dir=${ORIG_TARBALL_PREFIX}/${PACKAGE}	\
 		--git-export-dir=${EXPORT_DIR}				\
 		--git-debian-branch=${CURRENT_BRANCH}			\
@@ -299,6 +305,7 @@ wksp_aptrepo_update() {
 	local ARCHIVE_ROOT="${WORKSPACE_CONFIG["apt.target.repository"]}"
 	local ARCHIVE_CONF="${ARCHIVE_ROOT}/conf/apt-ftparchive.conf"
 	local ARCHIVE_CONF_TMPL="$WORKSPACE_ROOT/cf/apt/apt-ftparchive.conf.tmpl"
+	local ARCHIVE_PART_TMPL="$WORKSPACE_ROOT/cf/apt/apt-ftparchive.part.tmpl"
 	local RELEASE_CONF_TMPL="$WORKSPACE_ROOT/cf/apt/apt-distro-release.conf.tmpl"
 	local DISTS="${WORKSPACE_CONFIG["dpkg.distros"]}"
 	local SECTIONS="${WORKSPACE_CONFIG["dpkg.sections"]}"
@@ -330,6 +337,10 @@ wksp_aptrepo_update() {
 		> ${ARCHIVE_CONF}
 
 	for d in ${DISTS} ; do
+
+		cat $ARCHIVE_PART_TMPL \
+			| sed -e "s~@SECTIONS@~${SECTIONS}~; s~@ARCHITECTURES@~${ARCHITECTURES}~; s~@DISTRO@~$d~;" \
+			>> ${ARCHIVE_CONF}
 		mkdir -p ${ARCHIVE_ROOT}/dists/$d
 		for s in ${SECTIONS} ; do
 			mkdir -p ${ARCHIVE_ROOT}/pool/dists/$d/$s
@@ -357,7 +368,7 @@ wksp_aptrepo_update() {
 
 	for d in ${DISTS}; do
 		DIST_ROOT=${ARCHIVE_ROOT}/dists/$d
-		(cd ${ARCHIVE_ROOT} && pwd && apt-ftparchive -c ${ARCHIVE_ROOT}/conf/apt-$d-release.conf release ${DIST_ROOT} > ${DIST_ROOT}/Release.tmp )
+		(cd ${ARCHIVE_ROOT} && apt-ftparchive -c ${ARCHIVE_ROOT}/conf/apt-$d-release.conf release ${DIST_ROOT} > ${DIST_ROOT}/Release.tmp )
 		mv ${DIST_ROOT}/Release.tmp ${DIST_ROOT}/Release
 		gpg -abs -o ${DIST_ROOT}/Release.gpg ${DIST_ROOT}/Release
 	done
