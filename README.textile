@@ -7,6 +7,7 @@ This build workspace system is tailored to debian/ubuntu.
 * regularily run 'sync-workspace' to fetch all packages
 ** the individual package repositories will be stored under pkg/
 * setup pbuilder: https://wiki.ubuntu.com/PbuilderHowto
+* to build for Debian on Ubuntu, install: debian-archive-keyring
 
 = Building individual packages =
 
