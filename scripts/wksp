@@ -19,6 +19,9 @@ wksp_rootdir() {
 	output "$WORKSPACER_ROOT"
 }
 
+#
+# detect workspace root directory (exported to WORKSPACE_ROOT)
+#
 detect_rootdir() {
 	local CWD=`pwd`
 	if [ -f "$CWD/cf/workspace.cf" ]; then
@@ -36,6 +39,10 @@ detect_rootdir() {
 	die "cant find rootdir with workspace.cf"
 }
 
+#
+# list packages
+# requires $WORKSPACE_ROOT to be set
+#
 wksp_packages() {
 	for i in $WORKSPACE_ROOT/cf/packages/*.cf ; do
 		if [ -f "$i" ]; then
@@ -45,6 +52,10 @@ wksp_packages() {
 	done
 }
 
+#
+# generate global configuration (as shellscript piece)
+# requires $WORKSPACE_ROOT to be set
+#
 wksp_generate_global_config() {
 	detect_rootdir
 	echo "declare -A WORKSPACE_CONFIG"
@@ -61,6 +72,82 @@ wksp_generate_global_config() {
                  LC_MEASUREMENT LC_CTYPE LC_TIME LC_NAME ; do
 		echo "unset $i"
 	done
+}
+
+#
+# generate configuration (as shellscript piece) for specific target/arch
+#
+# $1: target distro (eg. precise, squeeze, ...)
+# $2: target architecture
+#
+wksp_generate_target_config() {
+	local TARGET_DIST="$1"
+	local TARGET_ARCH="$2"
+
+	if [ ! "$TARGET_ARCH" ]; then
+		local TARGET_ARCH=`dpkg --print-architecture`
+	fi
+
+	local TARGET_IDENT="${TARGET_DIST}-${TARGET_ARCH}"
+
+	detect_rootdir
+	eval `wksp_generate_global_config`
+	echo "declare -A TARGET_CONFIG"
+	for i in LANG LANGUAGE LC_PAPER LC_ADDRESS LC_MONETARY LC_NUMERIC LC_ALL \
+                 LC_TELEPHONE LC_MESSAGES LC_IDENTIFICATION LC_COLLATE \
+                 LC_MEASUREMENT LC_CTYPE LC_TIME LC_NAME ; do
+		echo "unset $i"
+	done
+
+	local BASE_COW="${WORKSPACE_CONFIG["dpkg.target.cow"]//\{DISTRO\}/$TARGET_IDENT}"
+	local BASE_TGZ="${WORKSPACE_CONFIG["dpkg.target.tgz"]//\{DISTRO\}/$TARGET_IDENT}"
+	local COMPONENTS="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.components"]}"
+	local MIRROR="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.mirror"]}"
+	local KEYRING="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.keyring"]}"
+	local PBUILDERRC="$WORKSPACE_ROOT/tmp/pbuilder-$TARGET_IDENT.rc"
+	local DISRO="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.distro"]}"
+
+	if [ ! "$DISTRO" ]; then
+		local DISTRO="$TARGET_DIST"
+	fi
+
+	echo "export TARGET_CONFIG[name]=\"$TARGET_DIST\""
+	echo "export TARGET_CONFIG[ident]=\"$TARGET_IDENT\""
+	echo "export TARGET_CONFIG[type]=\"dpkg\""
+	echo "export TARGET_CONFIG[base.tgz]=\"$BASE_TGZ\""
+	echo "export TARGET_CONFIG[base.cow]=\"$BASE_COW\""
+	echo "export TARGET_CONFIG[components]=\"$COMPONENTS\""
+	echo "export TARGET_CONFIG[mirror]=\"$MIRROR\""
+	echo "export TARGET_CONFIG[keyring]=\"$KEYRING\""
+	echo "export TARGET_CONFIG[pbuilderrc]=\"$PBUILDERRC\""
+	echo "export TARGET_CONFIG[distro]=\"$DISTRO\""
+	echo "export TARGET_CONFIG[architecture]=\"$TARGET_ARCH\""
+}
+
+#
+# generate target-specific pbuilderrc
+#
+# $1: target dist name (eg. precise, squeeze, ...)
+# $2: target architecture
+#
+wksp_generate_pbuilderrc() {
+	local TARGET_DIST="$1"
+	local TARGET_ARCH="$2"
+
+	[ "$TARGET_DIST" ] || die "wksp_generate_pbuilderrc: missing target dist"
+
+	eval `wksp_generate_target_config $TARGET_DIST $TARGET_ARCH`
+	mkdir -p `dirname "${TARGET_CONFIG[pbuilderrc]}"`
+	(
+		echo "export BASETGZ=\"${TARGET_CONFIG[base.tgz]}\""
+		echo "export BASEPATH=\"${TARGET_CONFIG[base.cow]}\""
+		echo "export BUILDPLACE=\"${TARGET_CONFIG[base.cow]}\""
+		echo "export COMPONENTS=\"${TARGET_CONFIG[components]}\""
+		echo "export MIRRORSITE=\"${TARGET_CONFIG[mirror]}\""
+		echo "export ARCHITECTURE=\"${TARGET_CONFIG[architecture]}\""
+		echo "export DISTRIBUTION=\"${TARGET_CONFIG[distro]}\""
+		echo "export DEBOOTSTRAPOPTS=( '--variant=buildd' '--keyring' '${TARGET_CONFIG["keyring"]}' )"
+	) > "${TARGET_CONFIG[pbuilderrc]}"
 }
 
 wksp_load_global_config () {
@@ -86,13 +173,6 @@ wksp_generate_package_config() {
 			echo "export PACKAGE_CONFIG[\"$key\"]=\"$value\""
 		done
 	)
-}
-
-wksp_load_package_config () {
-	local package="$1"
-	unset PACKAGE_CONFIG
-	eval `wksp_generate_package_config "${package}"`
-	export PACKAGE_CONFIG
 }
 
 #
@@ -214,6 +294,7 @@ git_get_current_branch() {
 }
 
 # $1: target distribution
+# $2: target architecture
 wksp_dpkg_prepare_pbuilder() {
 
 	eval `wksp_generate_global_config`
@@ -225,25 +306,23 @@ wksp_dpkg_prepare_pbuilder() {
 		die "$0: missing target distro name"
 	fi
 
+	eval `wksp_generate_target_config $TARGET_DIST $TARGET_ARCH`
+	wksp_generate_pbuilderrc $TARGET_DIST $TARGET_ARCH
+
 	if [ "$TARGET_ARCH" ]; then
 		TARGET_IDENT="${TARGET_DIST}-${TARGET_ARCH}"
 	else
 		TARGET_IDENT="${TARGET_DIST}"
 	fi
 
-	local TARGET_COW="${WORKSPACE_CONFIG["dpkg.target.cow"]//\{DISTRO\}/$TARGET_IDENT}"
-	local TARGET_COMPONENTS="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.components"]}"
-
-	if [ ! -d "$TARGET_COW" ]; then
-		log "[$TARGET_DIST] need to create cow image"
-		if [ "$TARGET_ARCH" ]; then
-			sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST}" ARCH="${TARGET_ARCH}" git-pbuilder create --distribution "${TARGET_DIST}" --architecture "${TARGET_ARCH}" --components "${TARGET_COMPONENTS}"
-		else
-			sudo COMPONENTS="${TARGET_COMPONENTS}" DIST="${TARGET_DIST}" git-pbuilder create --distribution "${TARGET_DIST}" --components "${TARGET_COMPONENTS}"
-		fi
-	else
-		log "[$TARGET_DIST] COW image already set up"
+	if [ -d "${TARGET_CONFIG[base.cow]}" ]; then
+		log "[$TARGET_DIST] COW image already set up: ${TARGET_CONFIG["base.cow"]}"
+		return 0
 	fi
+
+	log "[$TARGET_DIST] need to create cow image: ${TARGET_CONFIG["base.cow"]}"
+
+	sudo cowbuilder --create --configfile "${TARGET_CONFIG["pbuilderrc"]}"
 }
 
 wksp_build_dpkg() {
@@ -269,7 +348,10 @@ wksp_build_dpkg() {
 		done
 	done
 	[ "$TARGET_DIST" ] || die "cant detect target distro. maybe you need to checkout the right branch"
+	[ "$TARGET_ARCH" ] || export TARGET_ARCH=`dpkg --print-architecture`
+
 	wksp_dpkg_prepare_pbuilder "$TARGET_DIST" "$TARGET_ARCH"
+	eval `wksp_generate_target_config "$TARGET_DIST" "$TARGET_ARCH"`
 
 	local EXPORT_DIR="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/output/${PACKAGE}/${TARGET_DIST_IDENT}"
 	local ORIG_TARBALL_PREFIX="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/tarballs/${PACKAGE}/${TARGET_DIST_IDENT}"
@@ -460,12 +542,23 @@ while [ "$1" ]; do
 		;;
 		"update-aptrepo"|"--update-aptrepo")
 			wksp_aptrepo_update "$*"
+			exit 0
 		;;
 		"clean-aptrepo"|"--clean-aptrepo")
 			wksp_aptrepo_clean "$*"
+			exit 0
+		;;
+		"target-config")
+			wksp_generate_target_config "$@"
+			exit 0
+		;;
+		"pbuilderrc")
+			wksp_generate_pbuilderrc "$@"
+			exit 0
 		;;
 		*)
 			wksp_help
+			exit 0
 		;;
 	esac
 done
