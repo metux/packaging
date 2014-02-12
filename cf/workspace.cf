@@ -11,22 +11,38 @@ scm.remote.upstream.url:	{PROJECT}
 pbuilder.result:		/var/cache/pbuilder/result
 pbuilder.tempdir:		{WORKSPACE_ROOT}/tmp/pbuilder
 
-dpkg.distros:			lucid precise raring
+dpkg.distros:			lucid precise raring wheezy squeeze
 dpkg.sections:			main testing experimental
 dpkg.architectures:		all i386 amd64
 dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
+dpkg.target.tgz:		/var/cache/pbuilder/base-{DISTRO}.tgz
 
 dpkg.dist.precise.label:	Precise
 dpkg.dist.precise.description:	Precise Penguin
 dpkg.dist.precise.components:	main universe multiverse restricted
+dpkg.dist.precise.mirror:		http://mirrors.kernel.org/ubuntu
 
 dpkg.dist.raring.label:		Raring
 dpkg.dist.raring.description:	Raring Ringtail
 dpkg.dist.raring.components:	main universe multiverse restricted
+dpkg.dist.raring.mirror:		http://mirrors.kernel.org/ubuntu
 
 dpkg.dist.lucid.label:		Lucid
 dpkg.dist.lucid.description:	Lucid Lynx
 dpkg.dist.lucid.components:	main universe multiverse restricted
+dpkg.dist.lucid.mirror:		http://mirrors.kernel.org/ubuntu
+
+dpkg.dist.wheezy.label:			Debian Wheezy (metux)
+dpkg.dist.wheezy.description:		Debian Wheezy / i386 (metux)
+dpkg.dist.wheezy.components:		main contrib
+dpkg.dist.wheezy.mirror:		http://ftp.us.debian.org/debian/
+dpkg.dist.wheezy.keyring:		/usr/share/keyrings/debian-archive-keyring.gpg
+
+dpkg.dist.squeeze.label:		Debian Squeeze (metux)
+dpkg.dist.squeeze.description:		Debian Wheezy / i386 (metux)
+dpkg.dist.squeeze.components:		main contrib
+dpkg.dist.squeeze.mirror:		http://ftp.us.debian.org/debian
+dpkg.dist.squeeze.keyring:		/usr/share/keyrings/debian-archive-keyring.gpg
 
 apt.target.repository:		{WORKSPACE_ROOT}/aptrepo/
 apt.target.section:		experimental
