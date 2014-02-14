@@ -3,8 +3,9 @@ workspace.name:			development workspace
 workspace.sources:		{WORKSPACE_ROOT}/pkg
 
 ## SCM remotes
-scm.remotes:			github public upstream contrib1
+scm.remotes:			github public upstream contrib1 upstream-github
 scm.remote.github.url:		git@github.com:{PROJECT}.git
+scm.remote.upstream-github.url:	git@github.com:{PROJECT}.git
 scm.remote.public.url:		git://github.com/{PROJECT}.git
 scm.remote.upstream.url:	{PROJECT}
 
