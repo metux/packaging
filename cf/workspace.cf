@@ -12,7 +12,7 @@ scm.remote.upstream.url:	{PROJECT}
 pbuilder.result:		/var/cache/pbuilder/result
 pbuilder.tempdir:		{WORKSPACE_ROOT}/tmp/pbuilder
 
-dpkg.distros:			lucid precise raring wheezy squeeze
+dpkg.distros:			lucid precise raring wheezy squeeze trusty
 dpkg.sections:			main testing experimental
 dpkg.architectures:		all i386 amd64
 dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
@@ -29,6 +29,12 @@ dpkg.dist.raring.description:	Raring Ringtail
 dpkg.dist.raring.components:	main universe multiverse restricted
 dpkg.dist.raring.mirror:		http://mirrors.kernel.org/ubuntu
 dpkg.dist.raring.keyring:		/usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+dpkg.dist.trusty.label:		Ubuntu trusty (metux)
+dpkg.dist.trusty.description:	Ubuntu trusty (metux)
+dpkg.dist.trusty.components:	main universe multiverse restricted
+dpkg.dist.trusty.mirror:	http://mirrors.kernel.org/ubuntu
+dpkg.dist.trusty.keyring:	/usr/share/keyrings/ubuntu-archive-keyring.gpg
 
 dpkg.dist.lucid.label:		Lucid
 dpkg.dist.lucid.description:	Lucid Lynx
