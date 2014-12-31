@@ -13,7 +13,7 @@ scm.remote.gitorious.url:	git@gitorious.org:{PROJECT}.git
 pbuilder.result:		/var/cache/pbuilder/result
 pbuilder.tempdir:		{WORKSPACE_ROOT}/tmp/pbuilder
 
-dpkg.distros:			lucid precise raring wheezy squeeze trusty
+dpkg.distros:			lucid precise raring wheezy squeeze trusty jessie
 dpkg.sections:			main testing experimental
 dpkg.architectures:		all i386 amd64
 dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
@@ -54,6 +54,12 @@ dpkg.dist.squeeze.description:	Debian Wheezy / i386
 dpkg.dist.squeeze.components:	main contrib
 dpkg.dist.squeeze.mirror:	http://ftp.us.debian.org/debian
 dpkg.dist.squeeze.keyring:	/usr/share/keyrings/debian-archive-keyring.gpg
+
+dpkg.dist.jessie.label:		Debian Jessie
+dpkg.dist.jessie.description:	Debian Jessie / i386
+dpkg.dist.jessie.components:	main contrib
+dpkg.dist.jessie.mirror:	http://ftp.us.debian.org/debian
+dpkg.dist.jessie.keyring:	/usr/share/keyrings/debian-archive-keyring.gpg
 
 apt.target.repository:		{WORKSPACE_ROOT}/aptrepo/
 apt.target.section:		experimental
