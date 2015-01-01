@@ -1,0 +1,4 @@
+remote.github.project:		metux/tig
+remote.public.project:		metux/tig
+remote.upstream.project:	git://github.com/jonas/tig.git
+remote.contrib1.project:	jbq/tig
