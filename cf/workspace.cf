@@ -1,5 +1,5 @@
 ## our workspace name
-workspace.name:			empty development workspace
+workspace.name:			development workspace
 workspace.sources:		{WORKSPACE_ROOT}/pkg
 
 ## SCM remotes
