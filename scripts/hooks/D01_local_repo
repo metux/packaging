@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# this hook enables our local repo inside the build chroot
+#
+
+APT_REPO_URL="file://$APT_REPO"
+
+apt-key add $APT_REPO/repo.pub
+
+echo "deb $APT_REPO_URL $APT_DIST $APT_COMPONENTS" >> /etc/apt/sources.list
+
+apt-get update
+
+exit 0

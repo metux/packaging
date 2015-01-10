@@ -132,6 +132,7 @@ wksp_generate_target_config() {
 	fi
 
 	echo "export TARGET_CONFIG[name]=\"$TARGET_DIST\""
+	echo "export TARGET_CONFIG[dist]=\"$TARGET_DIST\""
 	echo "export TARGET_CONFIG[ident]=\"$TARGET_IDENT\""
 	echo "export TARGET_CONFIG[type]=\"dpkg\""
 	echo "export TARGET_CONFIG[base.tgz]=\"$BASE_TGZ\""
@@ -170,6 +171,7 @@ wksp_generate_pbuilderrc() {
 		echo "export ARCHITECTURE=\"${TARGET_CONFIG[architecture]}\""
 		echo "export DISTRIBUTION=\"${TARGET_CONFIG[distro]}\""
 		echo "export DEBOOTSTRAPOPTS=( '--variant=buildd' '--keyring' '${TARGET_CONFIG["keyring"]}' )"
+		echo "export HOOKDIR=\"${TARGET_CONFIG[hookdir]}\""
 	) > "${TARGET_CONFIG[pbuilderrc]}"
 }
 
@@ -392,6 +394,12 @@ wksp_build_dpkg() {
 	rm -Rf ${EXPORT_DIR}
 	mkdir -p ${EXPORT_DIR}
 
+	export GIT_PBUILDER_OPTIONS="--hookdir ${TARGET_CONFIG[hookdir]}"
+	export APT_REPO="${TARGET_CONFIG[aptrepo]}"
+	export APT_DIST="${TARGET_CONFIG[dist]}"
+	export APT_COMPONENTS="${TARGET_CONFIG[components]}"
+	export GIT_PBUILDER_AUTOCONF=1
+
 	( cd "${PACKAGE_CONFIG["local_workdir"]}" && git-buildpackage	\
 		--git-verbose						\
 		--git-pbuilder						\
@@ -403,6 +411,7 @@ wksp_build_dpkg() {
 		--git-upstream-tree=branch				\
 		--git-no-pristine-tar					\
 		--git-no-create-orig					\
+		--git-hooks						\
 		) || return 1
 
 	for deb in `find ${EXPORT_DIR} -name "*.deb"` ; do
