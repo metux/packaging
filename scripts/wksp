@@ -300,8 +300,8 @@ wksp_help() {
 	echo "    sync                    synchronize workspace with remotes"
 	echo "    build-dpkg <package>    build debian package from current branch using pbuilder"
 	echo "    prepare-dpkg <distro>   prepare pbuilder environment for given distro"
-	echo "    update-aptrepo          update the apt repositories"
-	echo "    clean-aptrepo           clean apt repository"
+	echo "    update-aptrepo          update the local apt repositories"
+	echo "    clean-aptrepo           clean local apt repository"
 	echo "    help                    this help page"
 	echo ""
 	exit
