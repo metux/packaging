@@ -318,6 +318,7 @@ wksp_help() {
 	wksp_help_line "build-dpkg"	"<package>"	"build debian package from current branch using pbuilder"
 	wksp_help_line "prepare-dpkg"	"<distro>"	"prepare pbuilder environment for given distro"
 	wksp_help_line "update-dpkg"	"<distro>"	"update pbuilder environment for given distro"
+	wksp_help_line "pbuilderrc"	"<distro>"	"generate pbuilder config file for given distro"
 	wksp_help_line "update-aptrepo"	""		"update the local apt repositories"
 	wksp_help_line "clean-aptrepo"	""		"clean local apt repository"
 	wksp_help_line "help"		""		"this help page"
@@ -359,6 +360,36 @@ wksp_dpkg_prepare_pbuilder() {
 	log "[$TARGET_DIST] need to create cow image: ${TARGET_CONFIG["base.cow"]}"
 
 	sudo cowbuilder --create --configfile "${TARGET_CONFIG["pbuilderrc"]}"
+}
+
+# $1: target distribution
+# $2: target architecture
+wksp_dpkg_update_pbuilder() {
+
+	eval `wksp_generate_global_config`
+
+	local TARGET_DIST="$1"
+	local TARGET_ARCH="$2"
+
+	if [ ! "$TARGET_DIST" ]; then
+		die "$0: missing target distro name"
+	fi
+
+	eval `wksp_generate_target_config $TARGET_DIST $TARGET_ARCH`
+	wksp_generate_pbuilderrc $TARGET_DIST $TARGET_ARCH
+
+	if [ "$TARGET_ARCH" ]; then
+		TARGET_IDENT="${TARGET_DIST}-${TARGET_ARCH}"
+	else
+		TARGET_IDENT="${TARGET_DIST}"
+	fi
+
+	if [ ! -d "${TARGET_CONFIG[base.cow]}" ]; then
+		log "[$TARGET_DIST] COW image not set up yet: ${TARGET_CONFIG["base.cow"]}"
+		return 1
+	fi
+
+	sudo cowbuilder --update --configfile "${TARGET_CONFIG["pbuilderrc"]}"
 }
 
 wksp_build_dpkg() {
@@ -584,6 +615,10 @@ while [ "$1" ]; do
 		;;
 		"prepare-dpkg"|"--prepare-dpkg")
 			wksp_dpkg_prepare_pbuilder "$*"
+			exit 0
+		;;
+		"update-dpkg"|"--update-dpkg")
+			wksp_dpkg_update_pbuilder "$*"
 			exit 0
 		;;
 		"update-aptrepo"|"--update-aptrepo")
