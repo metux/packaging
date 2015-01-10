@@ -292,17 +292,27 @@ wksp_sync_packages() {
 	done
 }
 
+wksp_help_line() {
+	local cmd="$1"
+	shift
+	local par="$1"
+	shift
+	printf "  %-35s %s" "$cmd $par" "$*"
+	echo
+}
+
 wksp_help() {
 	echo "usage: wksp <command>"
 	echo ""
 	echo "commands:"
 	echo ""
-	echo "    sync                    synchronize workspace with remotes"
-	echo "    build-dpkg <package>    build debian package from current branch using pbuilder"
-	echo "    prepare-dpkg <distro>   prepare pbuilder environment for given distro"
-	echo "    update-aptrepo          update the local apt repositories"
-	echo "    clean-aptrepo           clean local apt repository"
-	echo "    help                    this help page"
+	wksp_help_line "sync"		""		"synchronize workspace with remotes"
+	wksp_help_line "build-dpkg"	"<package>"	"build debian package from current branch using pbuilder"
+	wksp_help_line "prepare-dpkg"	"<distro>"	"prepare pbuilder environment for given distro"
+	wksp_help_line "update-dpkg"	"<distro>"	"update pbuilder environment for given distro"
+	wksp_help_line "update-aptrepo"	""		"update the local apt repositories"
+	wksp_help_line "clean-aptrepo"	""		"clean local apt repository"
+	wksp_help_line "help"		""		"this help page"
 	echo ""
 	exit
 }
