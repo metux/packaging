@@ -124,6 +124,8 @@ wksp_generate_target_config() {
 	local KEYRING="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.keyring"]}"
 	local PBUILDERRC="$WORKSPACE_ROOT/tmp/pbuilder-$TARGET_IDENT.rc"
 	local DISRO="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.distro"]}"
+	local APTREPO="${WORKSPACE_CONFIG["apt.target.repository"]}"
+	local TARGET_COMPONENT="${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.target-component"]}"
 
 	if [ ! "$DISTRO" ]; then
 		local DISTRO="$TARGET_DIST"
@@ -140,6 +142,9 @@ wksp_generate_target_config() {
 	echo "export TARGET_CONFIG[pbuilderrc]=\"$PBUILDERRC\""
 	echo "export TARGET_CONFIG[distro]=\"$DISTRO\""
 	echo "export TARGET_CONFIG[architecture]=\"$TARGET_ARCH\""
+	echo "export TARGET_CONFIG[aptrepo]=\"$APTREPO\""
+	echo "export TARGET_CONFIG[hookdir]=\"$WORKSPACE_ROOT/scripts/hooks\""
+	echo "export TARGET_CONFIG[target-component]=\"$TARGET_COMPONENT\""
 }
 
 #
@@ -402,8 +407,9 @@ wksp_build_dpkg() {
 
 	for deb in `find ${EXPORT_DIR} -name "*.deb"` ; do
 		echo "Found deb file: $deb"
-		local pooldir="${WORKSPACE_CONFIG["apt.target.repository"]}/pool/dists/${TARGET_DIST}/${WORKSPACE_CONFIG["apt.target.section"]}/${PACKAGE}"
+		local pooldir="${APT_REPO}/pool/dists/${TARGET_DIST}/${TARGET_CONFIG[target-component]}/${PACKAGE}"
 		mkdir -p $pooldir
+		echo "Copying to pooldir: $pooldir"
 		cp $deb $pooldir
 	done
 
@@ -418,9 +424,7 @@ wksp_aptrepo_update() {
 	local ARCHIVE_PART_TMPL="$WORKSPACE_ROOT/cf/apt/apt-ftparchive.part.tmpl"
 	local RELEASE_CONF_TMPL="$WORKSPACE_ROOT/cf/apt/apt-distro-release.conf.tmpl"
 	local DISTS="${WORKSPACE_CONFIG["dpkg.distros"]}"
-	local SECTIONS="${WORKSPACE_CONFIG["dpkg.sections"]}"
 	local ARCHITECTURES="${WORKSPACE_CONFIG["dpkg.architectures"]}"
-	local COMPONENTS="${WORKSPACE_CONFIG["dpkg.components"]}"
 
 	mkdir -p ${ARCHIVE_ROOT}
 
@@ -443,16 +447,22 @@ wksp_aptrepo_update() {
 	mkdir -p ${ARCHIVE_ROOT}/cache ${ARCHIVE_ROOT}/conf
 
 	cat $ARCHIVE_CONF_TMPL \
-		| sed -e "s~@SECTIONS@~${SECTIONS}~; s~@ARCHITECTURES@~${ARCHITECTURES}~" \
 		> ${ARCHIVE_CONF}
 
 	for d in ${DISTS} ; do
 
+		local CODENAME="$d"
+		local SECTIONS="${WORKSPACE_CONFIG["dpkg.dist.$d.sections"]}"
+		local COMPONENTS="${WORKSPACE_CONFIG["dpkg.dist.${d}.components"]}"
+		local LABEL="${WORKSPACE_CONFIG["dpkg.dist.${d}.label"]}"
+		local DESCRIPTION="${WORKSPACE_CONFIG["dpkg.dist.${d}.description"]}"
+
 		cat $ARCHIVE_PART_TMPL \
-			| sed -e "s~@SECTIONS@~${SECTIONS}~; s~@ARCHITECTURES@~${ARCHITECTURES}~; s~@DISTRO@~$d~;" \
+			| sed -e "s~@SECTIONS@~${COMPONENTS}~; s~@ARCHITECTURES@~${ARCHITECTURES}~; s~@DISTRO@~$d~;" \
 			>> ${ARCHIVE_CONF}
 		mkdir -p ${ARCHIVE_ROOT}/dists/$d
-		for s in ${SECTIONS} ; do
+
+		for s in ${COMPONENTS} ; do
 			mkdir -p ${ARCHIVE_ROOT}/pool/dists/$d/$s
 			for a in ${ARCHITECTURES} ; do
 				mkdir -p ${ARCHIVE_ROOT}/dists/$d/$s/binary-$a/
@@ -460,17 +470,14 @@ wksp_aptrepo_update() {
 			done
 		done
 
-		local CODENAME="$d"
-		local LABEL="$d"
-
 		cat $RELEASE_CONF_TMPL \
 			| sed -e "s~@SECTIONS@~${SECTIONS}~g"						\
 			| sed -e "s~@ARCHITECTURES@~${ARCHITECTURES}~g"					\
 			| sed -e "s~@CODENAME@~${CODENAME}~g"						\
 			| sed -e "s~@DISTRO@~${d}~g"							\
-			| sed -e "s~@LABEL@~${WORKSPACE_CONFIG["dpkg.dist.${d}.label"]}~g"		\
-			| sed -e "s~@COMPONENTS@~${WORKSPACE_CONFIG["dpkg.dist.${d}.components"]}~g"	\
-			| sed -e "s~@DESCRIPTION@~${WORKSPACE_CONFIG["dpkg.dist.${d}.description"]}~g"	\
+			| sed -e "s~@LABEL@~${LABEL}~g"		\
+			| sed -e "s~@COMPONENTS@~${COMPONENTS}~g"					\
+			| sed -e "s~@DESCRIPTION@~${DESCRIPTION}~g"	\
 			> ${ARCHIVE_ROOT}/conf/apt-$d-release.conf
 	done
 
@@ -495,9 +502,7 @@ wksp_aptrepo_clean() {
 	local ARCHIVE_ROOT="${WORKSPACE_CONFIG["apt.target.repository"]}"
 	local ARCHIVE_CONF="${ARCHIVE_ROOT}/conf/apt-ftparchive.conf"
 	local DISTS="${WORKSPACE_CONFIG["dpkg.distros"]}"
-	local SECTIONS="${WORKSPACE_CONFIG["dpkg.sections"]}"
 	local ARCHITECTURES="${WORKSPACE_CONFIG["dpkg.architectures"]}"
-	local COMPONENTS="${WORKSPACE_CONFIG["dpkg.components"]}"
 
 	local ARCHIVE_ROOT="${WORKSPACE_CONFIG["apt.target.repository"]}"
 	[ "$ARCHIVE_ROOT" ] || die "$0: missing config apt.target.repository"
