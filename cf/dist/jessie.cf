@@ -1,0 +1,5 @@
+label:		Debian Jessie
+description:	Jessie
+components:	main contrib
+mirror:		http://ftp.us.debian.org/debian
+keyring:	/usr/share/keyrings/debian-archive-keyring.gpg

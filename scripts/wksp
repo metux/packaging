@@ -56,7 +56,7 @@ wksp_packages() {
 # generate global configuration (as shellscript piece)
 # requires $WORKSPACE_ROOT to be set
 #
-wksp_generate_global_config() {
+wksp_generate_global_config_1() {
 	detect_rootdir
 	echo "declare -A WORKSPACE_CONFIG"
 	cat $WORKSPACE_ROOT/cf/workspace.cf | sed -e 's~#.*~~; s~^[ \t].*~~; s~[ \t]*$~~;' | grep -vE "^$" | \
@@ -71,6 +71,24 @@ wksp_generate_global_config() {
                  LC_TELEPHONE LC_MESSAGES LC_IDENTIFICATION LC_COLLATE \
                  LC_MEASUREMENT LC_CTYPE LC_TIME LC_NAME ; do
 		echo "unset $i"
+	done
+}
+
+wksp_generate_global_config() {
+	eval `wksp_generate_global_config_1`
+	wksp_generate_global_config_1
+	for d in ${WORKSPACE_CONFIG["dpkg.distros"]} ; do
+		cf="$WORKSPACE_ROOT/cf/dist/$d.cf"
+		if [ -f "$cf" ]; then
+			cat $cf | sed -e 's~#.*~~; s~^[ \t].*~~; s~[ \t]*$~~;' | grep -vE "^$" | \
+				while read line ; do
+					key=`echo "$line" | sed -e 's~:.*~~'`
+					value="${line##$key:}"
+					value="${value#"${value%%[![:space:]]*}"}"
+					value="${value//\{WORKSPACE_ROOT\}/$WORKSPACE_ROOT}"
+					echo "export WORKSPACE_CONFIG[\"dpkg.dist.$d.${key}\"]=\"$value\""
+				done
+		fi
 	done
 }
 
@@ -555,6 +573,9 @@ while [ "$1" ]; do
 		"pbuilderrc")
 			wksp_generate_pbuilderrc "$@"
 			exit 0
+		;;
+		"global-config")
+			wksp_generate_global_config
 		;;
 		*)
 			wksp_help

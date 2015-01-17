@@ -19,47 +19,5 @@ dpkg.architectures:		all i386 amd64
 dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
 dpkg.target.tgz:		/var/cache/pbuilder/base-{DISTRO}.tgz
 
-dpkg.dist.precise.label:	Precise
-dpkg.dist.precise.description:	Precise Penguin
-dpkg.dist.precise.components:	main universe multiverse restricted
-dpkg.dist.precise.mirror:	http://mirrors.kernel.org/ubuntu
-dpkg.dist.precise.keyring:	/usr/share/keyrings/ubuntu-archive-keyring.gpg
-
-dpkg.dist.raring.label:		Raring
-dpkg.dist.raring.description:	Raring Ringtail
-dpkg.dist.raring.components:	main universe multiverse restricted
-dpkg.dist.raring.mirror:	http://mirrors.kernel.org/ubuntu
-dpkg.dist.raring.keyring:	/usr/share/keyrings/ubuntu-archive-keyring.gpg
-
-dpkg.dist.trusty.label:		Ubuntu trusty
-dpkg.dist.trusty.description:	Ubuntu trusty / i386
-dpkg.dist.trusty.components:	main universe multiverse restricted
-dpkg.dist.trusty.mirror:	http://mirrors.kernel.org/ubuntu
-dpkg.dist.trusty.keyring:	/usr/share/keyrings/ubuntu-archive-keyring.gpg
-
-dpkg.dist.lucid.label:		Lucid
-dpkg.dist.lucid.description:	Lucid Lynx
-dpkg.dist.lucid.components:	main universe multiverse restricted
-dpkg.dist.lucid.mirror:		http://mirrors.kernel.org/ubuntu
-dpkg.dist.lucid.keyring:	/usr/share/keyrings/ubuntu-archive-keyring.gpg
-
-dpkg.dist.wheezy.label:		Debian Wheezy
-dpkg.dist.wheezy.description:	Debian Wheezy / i386
-dpkg.dist.wheezy.components:	main contrib
-dpkg.dist.wheezy.mirror:	http://ftp.us.debian.org/debian/
-dpkg.dist.wheezy.keyring:	/usr/share/keyrings/debian-archive-keyring.gpg
-
-dpkg.dist.squeeze.label:	Debian Squeeze
-dpkg.dist.squeeze.description:	Debian Wheezy / i386
-dpkg.dist.squeeze.components:	main contrib
-dpkg.dist.squeeze.mirror:	http://ftp.us.debian.org/debian
-dpkg.dist.squeeze.keyring:	/usr/share/keyrings/debian-archive-keyring.gpg
-
-dpkg.dist.jessie.label:		Debian Jessie
-dpkg.dist.jessie.description:	Debian Jessie / i386
-dpkg.dist.jessie.components:	main contrib
-dpkg.dist.jessie.mirror:	http://ftp.us.debian.org/debian
-dpkg.dist.jessie.keyring:	/usr/share/keyrings/debian-archive-keyring.gpg
-
 apt.target.repository:		{WORKSPACE_ROOT}/aptrepo/
 apt.target.section:		experimental
