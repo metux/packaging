@@ -14,7 +14,6 @@ pbuilder.result:		/var/cache/pbuilder/result
 pbuilder.tempdir:		{WORKSPACE_ROOT}/tmp/pbuilder
 
 dpkg.distros:			lucid precise raring wheezy squeeze trusty jessie
-dpkg.sections:			main testing experimental
 dpkg.architectures:		all i386 amd64
 dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
 dpkg.target.tgz:		/var/cache/pbuilder/base-{DISTRO}.tgz
