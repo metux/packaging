@@ -440,6 +440,9 @@ wksp_aptrepo_update() {
 
 	rm -Rf ${ARCHIVE_ROOT}/cache
 
+	## export our local sign key
+	gpg --export -a > ${ARCHIVE_ROOT}/local-repo.pub
+
 	local CLEAN_FILES="
 		Release
 		Release.gpg
