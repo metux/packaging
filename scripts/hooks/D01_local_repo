@@ -5,6 +5,10 @@
 
 APT_REPO_URL="file://$APT_REPO"
 
+echo "==== APT REPO CONTENTS ==="
+find "$APT_REPO"
+echo "=========================="
+
 apt-key add $APT_REPO/repo.pub
 
 echo "deb $APT_REPO_URL $APT_DIST $APT_COMPONENTS" >> /etc/apt/sources.list
