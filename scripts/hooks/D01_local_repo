@@ -5,7 +5,12 @@
 
 APT_REPO_URL="file://$APT_REPO"
 
-apt-key add $APT_REPO/repo.pub
+for i in repo.pub local-repo.pub ; do
+	if [ -f "$APT_REPO/$i" ]; then
+		echo "Enabling repo key: $i"
+		apt-key add "$APT_REPO/$i"
+	fi
+done
 
 echo "deb $APT_REPO_URL $APT_DIST $APT_COMPONENTS" >> /etc/apt/sources.list
 

@@ -9,6 +9,7 @@
 /aptrepo/dists/*/*/*/Packages.gz
 /aptrepo/dists/*/Release
 /aptrepo/dists/*/Release.gpg
+/aptrepo/local-repo.pub
 /aptrepo/INFO
 /build-*
 *.deb
