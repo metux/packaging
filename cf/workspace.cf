@@ -3,12 +3,13 @@ workspace.name:			empty development workspace
 workspace.sources:		{WORKSPACE_ROOT}/pkg
 
 ## SCM remotes
-scm.remotes:			github public upstream contrib1 upstream-github gitorious
+scm.remotes:			github public upstream contrib1 upstream-github gitorious launchpad
 scm.remote.github.url:		git@github.com:{PROJECT}.git
 scm.remote.upstream-github.url:	git@github.com:{PROJECT}.git
 scm.remote.public.url:		git://github.com/{PROJECT}.git
 scm.remote.upstream.url:	{PROJECT}
 scm.remote.gitorious.url:	git@gitorious.org:{PROJECT}.git
+scm.remote.launchpad.url:	bzr::lp:{PROJECT}
 
 pbuilder.result:		/var/cache/pbuilder/result
 pbuilder.tempdir:		{WORKSPACE_ROOT}/tmp/pbuilder
