@@ -1,6 +1,0 @@
-label:			Ubuntu Lucid
-description:		Lucid Lynx
-components:		main universe multiverse restricted
-mirror:			http://mirrors.kernel.org/ubuntu
-keyring:		/usr/share/keyrings/ubuntu-archive-keyring.gpg
-target-component:	multiverse
