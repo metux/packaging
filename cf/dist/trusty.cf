@@ -4,4 +4,8 @@ components:		main universe multiverse restricted
 mirror:			http://mirrors.kernel.org/ubuntu
 keyring:		/usr/share/keyrings/ubuntu-archive-keyring.gpg
 target-component:	multiverse
-othermirror:		deb http://de.archive.ubuntu.com/ubuntu/ trusty-backports main restricted universe multiverse|deb http://de.archive.ubuntu.com/ubuntu/ trusty-updates main restricted universe multiverse
+othermirror.0:		deb http://de.archive.ubuntu.com/ubuntu/          trusty-backports main restricted universe multiverse
+othermirror.1:		deb http://de.archive.ubuntu.com/ubuntu/          trusty-updates   main restricted universe multiverse
+othermirror.2:		deb http://extras.ubuntu.com/ubuntu               trusty           main
+othermirror.3:		deb http://archive.canonical.com/ubuntu           trusty           partner
+othermirror.4:		deb http://ppa.launchpad.net/openjdk-r/ppa/ubuntu trusty           main
