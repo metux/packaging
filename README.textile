@@ -4,10 +4,16 @@ This build workspace system is tailored to debian/ubuntu.
 = Initial setup =
 
 * run the script 'initialize' - it will install required packages
-* regularily run 'sync-workspace' to fetch all packages
+* regularily run 'sync-workspace' to fetch all (enabled) source repos
 ** the individual package repositories will be stored under pkg/
 * setup pbuilder: https://wiki.ubuntu.com/PbuilderHowto
 * to build for Debian on Ubuntu, install: debian-archive-keyring
+
+= Package configs and syncing =
+
+* package configs are placed under cf/packages/
+* by default, no packages are configured - instead the configs are placed under cf/packages-available/
+* to enable packages, symlink the corresponding configs from cf/packages-available/ into cf/packages/
 
 = Building individual packages =
 
