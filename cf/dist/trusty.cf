@@ -9,3 +9,4 @@ othermirror.1:		deb http://de.archive.ubuntu.com/ubuntu/          trusty-updates
 othermirror.2:		deb http://extras.ubuntu.com/ubuntu               trusty           main
 othermirror.3:		deb http://archive.canonical.com/ubuntu           trusty           partner
 othermirror.4:		deb http://ppa.launchpad.net/openjdk-r/ppa/ubuntu trusty           main
+extrapackages:		policyrcd-script-zg2

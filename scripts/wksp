@@ -134,6 +134,10 @@ wksp_generate_target_config() {
             [ "$tmp" ] && OTHERMIRROR="$OTHERMIRROR|$tmp"
 	done
 
+	## add our local repo
+#	OTHERMIRROR="$OTHERMIRROR|deb [trusted=yes] file:///$APTREPO $DISTRO"
+	OTHERMIRROR="$OTHERMIRROR|deb file:///$APTREPO $DISTRO"
+
 	if [ ! "$DISTRO" ]; then
 		local DISTRO="$TARGET_DIST"
 	fi
@@ -182,6 +186,7 @@ wksp_generate_pbuilderrc() {
 		echo "export DEBOOTSTRAPOPTS=( '--variant=buildd' '--keyring' '${TARGET_CONFIG["keyring"]}' )"
 		echo "export HOOKDIR=\"${TARGET_CONFIG[hookdir]}\""
 		echo "export BINDMOUNTS=\"${TARGET_CONFIG[aptrepo]}\""
+		echo "export EXTRAPACKAGES=\"${TARGET_CONFIG[extrapackages]}\""
 	) > "${TARGET_CONFIG[pbuilderrc]}"
 }
 
@@ -368,6 +373,11 @@ wksp_dpkg_prepare_pbuilder() {
 	log "[$TARGET_DIST] need to create cow image: ${TARGET_CONFIG["base.cow"]}"
 
 	sudo cowbuilder --create --configfile "${TARGET_CONFIG["pbuilderrc"]}"
+
+	echo "force-unsafe-io" > .tmp_aptcf
+	sudo mkdir -p "${TARGET_CONFIG["base.cow"]}/etc/dpkg/dpkg.cfg.d"
+	sudo cp .tmp_aptcf "${TARGET_CONFIG["base.cow"]}/etc/dpkg/dpkg.cfg.d/02apt-speedup"
+	rm -f .tmp_aptcf
 }
 
 wksp_build_dpkg() {
@@ -400,6 +410,9 @@ wksp_build_dpkg() {
 
 	local EXPORT_DIR="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/output/${PACKAGE}/${TARGET_DIST_IDENT}"
 	local ORIG_TARBALL_PREFIX="${WORKSPACE_CONFIG["pbuilder.tempdir"]}/tarballs/${PACKAGE}/${TARGET_DIST_IDENT}"
+	local BUILDPLACE="${WORKSPACE_CONFIG["dpkg.target.buildplace"]}"
+	BUILDPLACE="${BUILDPLACE//\{DISTRO\}/$TARGET_IDENT}"
+	BUILDPLACE="${BUILDPLACE//\{PACKAGE\}/$PACKAGE}"
 
 	rm -Rf ${EXPORT_DIR}
 	mkdir -p ${EXPORT_DIR}
@@ -409,6 +422,8 @@ wksp_build_dpkg() {
 	export APT_DIST="${TARGET_CONFIG[dist]}"
 	export APT_COMPONENTS="${TARGET_CONFIG[components]}"
 	export GIT_PBUILDER_AUTOCONF=1
+
+	echo "BUILDPLACE=$BUILDPLACE"
 
 	( cd "${PACKAGE_CONFIG["local_workdir"]}" && git-buildpackage	\
 		--git-verbose						\
@@ -422,6 +437,8 @@ wksp_build_dpkg() {
 		--git-no-pristine-tar					\
 		--git-no-create-orig					\
 		--git-hooks						\
+		--git-compression=1					\
+		--git-pbuilder-options="--buildplace ${BUILDPLACE} --preserve-buildplace"
 		) || return 1
 
 	for deb in `find ${EXPORT_DIR} -name "*.deb"` ; do

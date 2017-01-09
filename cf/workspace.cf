@@ -18,6 +18,7 @@ dpkg.distros:			trusty jessie
 dpkg.architectures:		all i386 amd64
 dpkg.target.cow:		/var/cache/pbuilder/base-{DISTRO}.cow
 dpkg.target.tgz:		/var/cache/pbuilder/base-{DISTRO}.tgz
+dpkg.target.buildplace:		/var/cache/pbuilder/build/{PACKAGE}.{DISTRO}.cow
 
 apt.target.repository:		{WORKSPACE_ROOT}/aptrepo/
 apt.target.section:		experimental
