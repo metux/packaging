@@ -3,6 +3,7 @@ description:		Trusty
 components:		main universe multiverse restricted
 mirror:			http://mirrors.kernel.org/ubuntu
 keyring:		/usr/share/keyrings/ubuntu-archive-keyring.gpg
+extra-keyrings:		/usr/share/keyrings/ubuntu-extras-keyring.gpg
 target-component:	multiverse
 othermirror.0:		deb http://de.archive.ubuntu.com/ubuntu/          trusty-backports main restricted universe multiverse
 othermirror.1:		deb http://de.archive.ubuntu.com/ubuntu/          trusty-updates   main restricted universe multiverse

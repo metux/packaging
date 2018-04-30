@@ -154,6 +154,7 @@ wksp_generate_target_config() {
 	echo "export TARGET_CONFIG[aptrepo]=\"$APTREPO\""
 	echo "export TARGET_CONFIG[hookdir]=\"$WORKSPACE_ROOT/scripts/hooks\""
 	echo "export TARGET_CONFIG[target-component]=\"$TARGET_COMPONENT\""
+	echo "export TARGET_CONFIG[extra-keyrings]=\"${WORKSPACE_CONFIG["dpkg.dist.$TARGET_DIST.extra-keyrings"]}\""
 }
 
 #
@@ -182,6 +183,7 @@ wksp_generate_pbuilderrc() {
 		echo "export DEBOOTSTRAPOPTS=( '--variant=buildd' '--keyring' '${TARGET_CONFIG["keyring"]}' )"
 		echo "export HOOKDIR=\"${TARGET_CONFIG[hookdir]}\""
 		echo "export BINDMOUNTS=\"${TARGET_CONFIG[aptrepo]}\""
+		echo "export KEYRINGS=( ${TARGET_CONFIG[extra-keyrings]} )"
 	) > "${TARGET_CONFIG[pbuilderrc]}"
 }
 
@@ -422,6 +424,7 @@ wksp_build_dpkg() {
 		--git-no-pristine-tar					\
 		--git-no-create-orig					\
 		--git-hooks						\
+		--git-compression-level=0				\
 		) || return 1
 
 	for deb in `find ${EXPORT_DIR} -name "*.deb"` ; do

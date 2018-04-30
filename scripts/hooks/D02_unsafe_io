@@ -2,6 +2,10 @@
 #
 # this hook configures apt to use unsafe io for speedup
 #
-mkdir -p /etc/dpkg/dpkg.cfg.d
 
+echo "=== forcing apt to unsafe io"
+
+mkdir -p /etc/dpkg/dpkg.cfg.d
 echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup
+
+exit 0

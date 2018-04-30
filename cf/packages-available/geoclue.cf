@@ -1,0 +1,3 @@
+remote.github.project:		metux/geoclue
+remote.public.project:		metux/geoclue
+remote.upstream.project:	git://anonscm.debian.org/collab-maint/geoclue.git
